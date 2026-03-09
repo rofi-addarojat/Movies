@@ -82,6 +82,8 @@ export function Navbar() {
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
             <Link to="/" className="hover:text-white transition-colors">Home</Link>
             <Link to="/category/trending" className="hover:text-white transition-colors">Trending</Link>
+            <Link to="/category/indonesian-movies" className="hover:text-white transition-colors">Film Indonesia</Link>
+            <Link to="/category/indonesian-drama" className="hover:text-white transition-colors">Drama Indonesia</Link>
             <Link to="/category/kdrama" className="hover:text-white transition-colors">K-Drama</Link>
             <Link to="/category/anime" className="hover:text-white transition-colors">Anime</Link>
           </nav>
@@ -205,6 +207,8 @@ export function Navbar() {
               <nav className="flex flex-col gap-2 text-sm font-medium text-slate-300">
                 <Link to="/" className="p-2 hover:bg-slate-900 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
                 <Link to="/category/trending" className="p-2 hover:bg-slate-900 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Trending</Link>
+                <Link to="/category/indonesian-movies" className="p-2 hover:bg-slate-900 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Film Indonesia</Link>
+                <Link to="/category/indonesian-drama" className="p-2 hover:bg-slate-900 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Drama Indonesia</Link>
                 <Link to="/category/kdrama" className="p-2 hover:bg-slate-900 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>K-Drama</Link>
                 <Link to="/category/anime" className="p-2 hover:bg-slate-900 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Anime</Link>
               </nav>

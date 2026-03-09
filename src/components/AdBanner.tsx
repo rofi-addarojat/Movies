@@ -69,15 +69,6 @@ export function AdBanner({ position }: AdBannerProps) {
   if (ad.type === "script") {
     return (
       <div className="relative w-full my-4 flex justify-center group">
-        <div className="absolute top-0 left-0 bg-black/60 backdrop-blur-md px-2 py-1 rounded-br text-[10px] font-bold text-white uppercase tracking-wider z-10">
-          Ad
-        </div>
-        <button 
-          onClick={() => setIsVisible(false)}
-          className="absolute top-0 right-0 bg-black/60 backdrop-blur-md p-1 rounded-bl text-white opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600"
-        >
-          <X className="w-4 h-4" />
-        </button>
         <div 
           ref={containerRef} 
           className="w-full min-h-[50px] flex items-center justify-center overflow-hidden"
@@ -103,12 +94,6 @@ export function AdBanner({ position }: AdBannerProps) {
             {ad.title}
           </a>
         </div>
-        <button 
-          onClick={() => setIsVisible(false)}
-          className="p-2 text-slate-500 hover:text-white transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
       </div>
     );
   }
@@ -116,15 +101,6 @@ export function AdBanner({ position }: AdBannerProps) {
   // Banner ad
   return (
     <div className="relative w-full my-4 group">
-      <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider z-10">
-        Ad
-      </div>
-      <button 
-        onClick={() => setIsVisible(false)}
-        className="absolute top-2 right-2 bg-black/60 backdrop-blur-md p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600"
-      >
-        <X className="w-4 h-4" />
-      </button>
       <a 
         href={ad.targetUrl} 
         target="_blank" 

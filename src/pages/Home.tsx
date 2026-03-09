@@ -32,14 +32,20 @@ export function Home() {
 
         if (trendingRes.success) {
           setTrending(trendingRes.items);
-          if (trendingRes.items.length > 0) {
-            setHeroMovie(trendingRes.items[0]);
-          }
         }
-        if (indoMoviesRes.success) setIndoMovies(indoMoviesRes.items);
+        if (indoMoviesRes.success) {
+          setIndoMovies(indoMoviesRes.items);
+        }
         if (indoDramaRes.success) setIndoDrama(indoDramaRes.items);
         if (kdramaRes.success) setKdrama(kdramaRes.items);
         if (animeRes.success) setAnime(animeRes.items);
+
+        // Prioritize Indonesian Movies for Hero Section
+        if (indoMoviesRes.success && indoMoviesRes.items.length > 0) {
+          setHeroMovie(indoMoviesRes.items[0]);
+        } else if (trendingRes.success && trendingRes.items.length > 0) {
+          setHeroMovie(trendingRes.items[0]);
+        }
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
       } finally {
