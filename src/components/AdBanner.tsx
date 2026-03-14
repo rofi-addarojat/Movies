@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface Ad {
@@ -18,7 +18,6 @@ interface AdBannerProps {
 export function AdBanner({ position }: AdBannerProps) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [isVisible, setIsVisible] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchAds = async () => {
@@ -45,21 +44,6 @@ export function AdBanner({ position }: AdBannerProps) {
   // Select a random ad from the matching position
   const ad = ads.length > 0 ? ads[Math.floor(Math.random() * ads.length)] : null;
 
-  useEffect(() => {
-    if (ad?.type === "script" && ad.customCode && containerRef.current) {
-      // Clear previous content
-      containerRef.current.innerHTML = "";
-      
-      try {
-        // Create a contextual fragment to safely execute scripts
-        const fragment = document.createRange().createContextualFragment(ad.customCode);
-        containerRef.current.appendChild(fragment);
-      } catch (e) {
-        console.error("Failed to inject ad script:", e);
-      }
-    }
-  }, [ad]);
-
   if (!isVisible || !ad) return null;
 
   const handleClick = () => {
@@ -67,12 +51,32 @@ export function AdBanner({ position }: AdBannerProps) {
   };
 
   if (ad.type === "script") {
+    // For third-party scripts (AdSense, MGID), the safest way to prevent them 
+    // from breaking the React app (e.g., via document.write) is to isolate them in an iframe.
+    const iframeContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
+          </style>
+        </head>
+        <body>
+          ${ad.customCode || ''}
+        </body>
+      </html>
+    `;
+
     return (
-      <div className="relative w-full my-4 flex justify-center group">
-        <div 
-          ref={containerRef} 
-          className="w-full min-h-[50px] flex items-center justify-center overflow-hidden"
-          onClick={handleClick}
+      <div className="relative w-full my-4 flex justify-center group" onClick={handleClick}>
+        <iframe
+          srcDoc={iframeContent}
+          className="w-full min-h-[90px] border-0 overflow-hidden"
+          scrolling="no"
+          title={`Ad-${ad.id}`}
+          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         />
       </div>
     );

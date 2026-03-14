@@ -20,7 +20,14 @@ export function Category() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/proxy?action=${encodeURIComponent(categoryId)}&page=1`);
+        const standardCategories = ["trending", "indonesian-movies", "indonesian-drama", "kdrama", "short-tv", "anime", "adult-comedy", "western-tv", "indo-dub"];
+        
+        let url = `/api/proxy?action=${encodeURIComponent(categoryId)}&page=1`;
+        if (!standardCategories.includes(categoryId)) {
+          url = `/api/proxy?action=search&q=${encodeURIComponent(categoryId)}`;
+        }
+
+        const res = await fetch(url);
         const data = await res.json();
         if (data.success && data.items) {
           setMovies(data.items);

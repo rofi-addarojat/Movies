@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { Play, Star, Calendar, Clock, Film, AlertCircle } from "lucide-react";
+import { Play, Star, Calendar, Clock, Film, AlertCircle, Download, ChevronDown } from "lucide-react";
 import { AdBanner } from "@/components/AdBanner";
 import type { MovieDetail } from "@/types";
+
+interface DownloadOption {
+  url: string;
+  resolution: number;
+  quality: number;
+}
 
 export function Detail() {
   const { detailPath } = useParams<{ detailPath: string }>();
@@ -11,6 +17,29 @@ export function Detail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+  const [downloads, setDownloads] = useState<DownloadOption[]>([]);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [currentEpisode, setCurrentEpisode] = useState<string | null>(null);
+  const [currentSeason, setCurrentSeason] = useState<string | null>(null);
+
+  const fetchStreamData = async (id: string, path: string, season?: string, episode?: string) => {
+    try {
+      let url = `https://zeldvorik.ru/apiv3/stream.php?id=${id}&detailPath=${encodeURIComponent(path)}`;
+      if (season && episode) {
+        url += `&season=${season}&episode=${episode}`;
+      }
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && data.downloads) {
+        setDownloads(data.downloads);
+      } else {
+        setDownloads([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch stream data:", err);
+      setDownloads([]);
+    }
+  };
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -23,6 +52,16 @@ export function Detail() {
         if (data.success && data.data) {
           setDetail(data.data);
           setCurrentVideoUrl(data.data.playerUrl);
+          
+          // Fetch initial stream data for movie or first episode
+          if (data.data.type === "movie") {
+            fetchStreamData(data.data.id, data.data.detailPath);
+          } else if (data.data.seasons && data.data.seasons.length > 0 && data.data.seasons[0].episodes.length > 0) {
+            const firstEp = data.data.seasons[0].episodes[0];
+            setCurrentSeason(data.data.seasons[0].season.toString());
+            setCurrentEpisode(firstEp.episode.toString());
+            fetchStreamData(data.data.id, data.data.detailPath, data.data.seasons[0].season.toString(), firstEp.episode.toString());
+          }
         } else {
           setError("Failed to load movie details.");
         }
@@ -155,6 +194,54 @@ export function Detail() {
               </span>
             </div>
 
+            <div className="flex flex-wrap gap-4 mb-6 relative">
+              {downloads.length > 0 ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDownloadOpen(!isDownloadOpen)}
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-full font-bold transition-colors"
+                  >
+                    <Download className="w-5 h-5" />
+                    Download {detail.type === "movie" ? "Movie" : "Episode"}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isDownloadOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  
+                  {isDownloadOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+                      <div className="p-2">
+                        <div className="text-xs font-semibold text-slate-400 px-3 py-2 uppercase tracking-wider">
+                          Select Quality
+                        </div>
+                        {downloads.map((dl, idx) => (
+                          <a
+                            key={idx}
+                            href={dl.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center justify-between px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 hover:text-white rounded-lg transition-colors"
+                            onClick={() => setIsDownloadOpen(false)}
+                          >
+                            <span>{dl.quality}p</span>
+                            <Download className="w-4 h-4 opacity-50" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : currentVideoUrl ? (
+                <a
+                  href={currentVideoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-2.5 rounded-full font-bold transition-colors"
+                >
+                  <Play className="w-5 h-5" />
+                  Open Player
+                </a>
+              ) : null}
+            </div>
+
             <div className="mb-6">
               <h3 className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">Genre</h3>
               <div className="flex flex-wrap gap-2">
@@ -192,7 +279,13 @@ export function Detail() {
                   {season.episodes.map((ep) => (
                     <button
                       key={ep.episode}
-                      onClick={() => ep.playerUrl && setCurrentVideoUrl(ep.playerUrl)}
+                      onClick={() => {
+                        if (ep.playerUrl) setCurrentVideoUrl(ep.playerUrl);
+                        setCurrentSeason(season.season.toString());
+                        setCurrentEpisode(ep.episode.toString());
+                        fetchStreamData(detail.id, detail.detailPath, season.season.toString(), ep.episode.toString());
+                        setIsDownloadOpen(false);
+                      }}
                       className={`flex flex-col p-4 rounded-xl border transition-all text-left ${
                         currentVideoUrl === ep.playerUrl
                           ? "bg-red-600/10 border-red-500/50 text-white"

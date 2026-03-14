@@ -12,6 +12,8 @@ export function Home() {
   const [trending, setTrending] = useState<MovieItem[]>([]);
   const [indoMovies, setIndoMovies] = useState<MovieItem[]>([]);
   const [indoDrama, setIndoDrama] = useState<MovieItem[]>([]);
+  const [actionMovies, setActionMovies] = useState<MovieItem[]>([]);
+  const [horrorMovies, setHorrorMovies] = useState<MovieItem[]>([]);
   const [kdrama, setKdrama] = useState<MovieItem[]>([]);
   const [anime, setAnime] = useState<MovieItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,10 +24,12 @@ export function Home() {
     const fetchAll = async () => {
       setIsLoading(true);
       try {
-        const [trendingRes, indoMoviesRes, indoDramaRes, kdramaRes, animeRes] = await Promise.all([
+        const [trendingRes, indoMoviesRes, indoDramaRes, actionRes, horrorRes, kdramaRes, animeRes] = await Promise.all([
           fetch("/api/proxy?action=trending&page=1").then((res) => res.json()),
           fetch("/api/proxy?action=indonesian-movies&page=1").then((res) => res.json()),
           fetch("/api/proxy?action=indonesian-drama&page=1").then((res) => res.json()),
+          fetch("/api/proxy?action=search&q=action").then((res) => res.json()),
+          fetch("/api/proxy?action=search&q=horror").then((res) => res.json()),
           fetch("/api/proxy?action=kdrama&page=1").then((res) => res.json()),
           fetch("/api/proxy?action=anime&page=1").then((res) => res.json()),
         ]);
@@ -37,14 +41,16 @@ export function Home() {
           setIndoMovies(indoMoviesRes.items);
         }
         if (indoDramaRes.success) setIndoDrama(indoDramaRes.items);
+        if (actionRes.success) setActionMovies(actionRes.items);
+        if (horrorRes.success) setHorrorMovies(horrorRes.items);
         if (kdramaRes.success) setKdrama(kdramaRes.items);
         if (animeRes.success) setAnime(animeRes.items);
 
-        // Prioritize Indonesian Movies for Hero Section
-        if (indoMoviesRes.success && indoMoviesRes.items.length > 0) {
-          setHeroMovie(indoMoviesRes.items[0]);
-        } else if (trendingRes.success && trendingRes.items.length > 0) {
+        // Prioritize Trending for Hero Section to make it more global
+        if (trendingRes.success && trendingRes.items.length > 0) {
           setHeroMovie(trendingRes.items[0]);
+        } else if (indoMoviesRes.success && indoMoviesRes.items.length > 0) {
+          setHeroMovie(indoMoviesRes.items[0]);
         }
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
@@ -57,12 +63,14 @@ export function Home() {
   }, []);
 
   const { genres, years } = useMemo(() => 
-    extractFilterOptions([trending, indoMovies, indoDrama, kdrama, anime]), 
-  [trending, indoMovies, indoDrama, kdrama, anime]);
+    extractFilterOptions([trending, indoMovies, indoDrama, actionMovies, horrorMovies, kdrama, anime]), 
+  [trending, indoMovies, indoDrama, actionMovies, horrorMovies, kdrama, anime]);
 
   const filteredTrending = useMemo(() => applyFilterAndSort(trending, filters), [trending, filters]);
   const filteredIndoMovies = useMemo(() => applyFilterAndSort(indoMovies, filters), [indoMovies, filters]);
   const filteredIndoDrama = useMemo(() => applyFilterAndSort(indoDrama, filters), [indoDrama, filters]);
+  const filteredAction = useMemo(() => applyFilterAndSort(actionMovies, filters), [actionMovies, filters]);
+  const filteredHorror = useMemo(() => applyFilterAndSort(horrorMovies, filters), [horrorMovies, filters]);
   const filteredKdrama = useMemo(() => applyFilterAndSort(kdrama, filters), [kdrama, filters]);
   const filteredAnime = useMemo(() => applyFilterAndSort(anime, filters), [anime, filters]);
 
@@ -139,20 +147,26 @@ export function Home() {
           <FilterSortBar filters={filters} setFilters={setFilters} availableGenres={genres} availableYears={years} />
         </div>
 
+        {(isLoading || filteredTrending.length > 0) && (
+          <SectionRow title="Trending Now" items={filteredTrending} isLoading={isLoading} viewAllLink="/category/trending" priority={true} />
+        )}
+        {(isLoading || filteredAction.length > 0) && (
+          <SectionRow title="Action Movies" items={filteredAction} isLoading={isLoading} viewAllLink="/category/action" />
+        )}
         {(isLoading || filteredIndoMovies.length > 0) && (
-          <SectionRow title="Film Indonesia" items={filteredIndoMovies} isLoading={isLoading} viewAllLink="/category/indonesian-movies" priority={true} />
+          <SectionRow title="Film Indonesia" items={filteredIndoMovies} isLoading={isLoading} viewAllLink="/category/indonesian-movies" />
         )}
         {(isLoading || filteredIndoDrama.length > 0) && (
           <SectionRow title="Drama Indonesia" items={filteredIndoDrama} isLoading={isLoading} viewAllLink="/category/indonesian-drama" />
+        )}
+        {(isLoading || filteredHorror.length > 0) && (
+          <SectionRow title="Horror Movies" items={filteredHorror} isLoading={isLoading} viewAllLink="/category/horror" />
         )}
 
         <div className="container mx-auto px-4">
           <AdBanner position="bottom" />
         </div>
 
-        {(isLoading || filteredTrending.length > 0) && (
-          <SectionRow title="Trending Now" items={filteredTrending} isLoading={isLoading} viewAllLink="/category/trending" />
-        )}
         {(isLoading || filteredKdrama.length > 0) && (
           <SectionRow title="K-Drama Hits" items={filteredKdrama} isLoading={isLoading} viewAllLink="/category/kdrama" />
         )}
@@ -160,7 +174,7 @@ export function Home() {
           <SectionRow title="Anime" items={filteredAnime} isLoading={isLoading} viewAllLink="/category/anime" />
         )}
 
-        {!isLoading && filteredTrending.length === 0 && filteredKdrama.length === 0 && filteredIndoMovies.length === 0 && filteredIndoDrama.length === 0 && filteredAnime.length === 0 && (
+        {!isLoading && filteredTrending.length === 0 && filteredAction.length === 0 && filteredIndoMovies.length === 0 && filteredIndoDrama.length === 0 && filteredHorror.length === 0 && filteredKdrama.length === 0 && filteredAnime.length === 0 && (
           <div className="container mx-auto px-4 py-12 text-center">
             <h3 className="text-2xl font-bold text-white mb-2">No matches found</h3>
             <p className="text-slate-400">Try adjusting your filters to see more content.</p>
