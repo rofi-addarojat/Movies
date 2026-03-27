@@ -1,6 +1,7 @@
 import express from "express";
 import db from "./server/db.js";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -225,7 +226,25 @@ Sitemap: https://masrofi.web.id/sitemap.xml`);
     app.use(express.static(path.join(__dirname, "dist")));
     // Fallback for SPA routing
     app.get("*", (req, res) => {
-      res.sendFile(path.resolve(__dirname, "dist", "index.html"));
+      const indexPath = path.resolve(__dirname, "dist", "index.html");
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(200).send(`
+          <!doctype html>
+          <html lang="id">
+            <head>
+              <title>Sedang Memperbarui...</title>
+              <meta charset="utf-8">
+              <style>body{font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#fff;}</style>
+            </head>
+            <body>
+              <h1>Website Sedang Diperbarui</h1>
+              <p>Proses instalasi selesai. Silakan klik tombol <b>Run JS script</b> dengan perintah <b>build</b> di DirectAdmin untuk menyelesaikan.</p>
+            </body>
+          </html>
+        `);
+      }
     });
   }
 
