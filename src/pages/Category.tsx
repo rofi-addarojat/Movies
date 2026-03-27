@@ -15,6 +15,26 @@ export function Category() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
   useEffect(() => {
+    const safeFetch = async (url: string) => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+           console.warn(`Fetch failed for ${url} with status ${res.status}`);
+           return { success: false, items: [] };
+        }
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error(`Failed to parse JSON for ${url}:`, text.substring(0, 50));
+          return { success: false, items: [] };
+        }
+      } catch (error) {
+        console.error(`Network error for ${url}:`, error);
+        return { success: false, items: [] };
+      }
+    };
+
     const fetchCategory = async () => {
       if (!categoryId) return;
       setIsLoading(true);
@@ -27,8 +47,7 @@ export function Category() {
           url = `/api/proxy?action=search&q=${encodeURIComponent(categoryId)}`;
         }
 
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await safeFetch(url);
         if (data.success && data.items) {
           setMovies(data.items);
         } else {

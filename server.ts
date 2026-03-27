@@ -21,21 +21,48 @@ async function startServer() {
         }
       }
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+      let retries = 2; // 1 initial + 1 retry
+      let lastError: any;
+
+      while (retries > 0) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout per attempt
+
+          const response = await fetch(url.toString(), {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            },
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error(`External API responded with status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return res.json(data); // Success, exit loop and return
+        } catch (error) {
+          lastError = error;
+          retries--;
+          if (retries > 0) {
+            // Wait 1 second before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`External API responded with status: ${response.status}`);
       }
 
-      const data = await response.json();
-      res.json(data);
+      // If we exhaust all retries
+      console.error("Proxy error after retries:", lastError);
+      res.status(502).json({ 
+        success: false, 
+        error: "The external movie server is currently busy or unavailable (504 Gateway Timeout). Please try again in a few moments." 
+      });
     } catch (error) {
-      console.error("Proxy error:", error);
-      res.status(500).json({ success: false, error: "Failed to fetch data from external API" });
+      console.error("Proxy setup error:", error);
+      res.status(500).json({ success: false, error: "Internal server error setting up proxy" });
     }
   });
 

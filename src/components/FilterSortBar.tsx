@@ -14,14 +14,14 @@ export function FilterSortBar({ filters, setFilters, availableGenres, availableY
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const selectClass = "appearance-none bg-slate-950/50 border border-slate-800/60 text-slate-300 text-sm font-medium rounded-xl focus:ring-2 focus:ring-red-500/50 focus:border-red-500 block px-4 py-2.5 outline-none hover:border-slate-600 hover:bg-slate-900 transition-all cursor-pointer shadow-sm";
+  const selectClass = "appearance-none bg-slate-900/80 border border-slate-700/50 text-slate-200 text-sm font-semibold rounded-xl focus:ring-2 focus:ring-red-500/50 focus:border-red-500 block px-5 py-3 outline-none hover:border-slate-500 hover:bg-slate-800 transition-all cursor-pointer shadow-lg backdrop-blur-md";
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-2xl mb-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 w-full lg:w-auto">
-        <div className="flex items-center gap-2.5 text-slate-300 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-white/5">
-          <Filter className="w-4 h-4 text-red-500" />
-          <span className="text-sm font-semibold tracking-wide uppercase">Filters</span>
+    <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-slate-900/60 backdrop-blur-2xl p-6 rounded-3xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] mb-12 relative z-20">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full lg:w-auto">
+        <div className="flex items-center gap-3 text-white bg-red-600/20 px-4 py-2 rounded-xl border border-red-500/30 shadow-inner">
+          <Filter className="w-5 h-5 text-red-500" />
+          <span className="text-sm font-bold tracking-widest uppercase">Filters</span>
         </div>
         
         <div className="flex flex-wrap gap-3 w-full sm:w-auto">

@@ -16,6 +16,26 @@ export function Search() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
   useEffect(() => {
+    const safeFetch = async (url: string) => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+           console.warn(`Fetch failed for ${url} with status ${res.status}`);
+           return { success: false, items: [] };
+        }
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error(`Failed to parse JSON for ${url}:`, text.substring(0, 50));
+          return { success: false, items: [] };
+        }
+      } catch (error) {
+        console.error(`Network error for ${url}:`, error);
+        return { success: false, items: [] };
+      }
+    };
+
     const fetchSearch = async () => {
       if (!query.trim()) {
         setResults([]);
@@ -25,8 +45,7 @@ export function Search() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/proxy?action=search&q=${encodeURIComponent(query)}`);
-        const data = await res.json();
+        const data = await safeFetch(`/api/proxy?action=search&q=${encodeURIComponent(query)}`);
         if (data.success && data.items) {
           setResults(data.items);
         } else {
