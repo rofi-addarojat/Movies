@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { Play, Star, Calendar, Clock, Film, AlertCircle, Download } from "lucide-react";
 import { AdBanner } from "@/components/AdBanner";
-import type { MovieDetail } from "@/types";
+import { SectionRow } from "@/components/SectionRow";
+import type { MovieDetail, MovieItem } from "@/types";
 
 export function Detail() {
   const { detailPath } = useParams<{ detailPath: string }>();
@@ -13,6 +14,8 @@ export function Detail() {
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<string | null>(null);
   const [currentSeason, setCurrentSeason] = useState<string | null>(null);
+  const [relatedMovies, setRelatedMovies] = useState<MovieItem[]>([]);
+  const [isRelatedLoading, setIsRelatedLoading] = useState(false);
 
   useEffect(() => {
     const safeFetch = async (url: string) => {
@@ -20,18 +23,18 @@ export function Detail() {
         const res = await fetch(url);
         if (!res.ok) {
            console.warn(`Fetch failed for ${url} with status ${res.status}`);
-           return { success: false, data: null };
+           return { success: false, data: null, items: [] };
         }
         const text = await res.text();
         try {
           return JSON.parse(text);
         } catch (e) {
           console.error(`Failed to parse JSON for ${url}:`, text.substring(0, 50));
-          return { success: false, data: null };
+          return { success: false, data: null, items: [] };
         }
       } catch (error) {
         console.error(`Network error for ${url}:`, error);
-        return { success: false, data: null };
+        return { success: false, data: null, items: [] };
       }
     };
 
@@ -53,6 +56,20 @@ export function Detail() {
             setCurrentSeason(data.data.seasons[0].season.toString());
             setCurrentEpisode(firstEp.episode.toString());
           }
+
+          // Fetch related content based on the first genre
+          if (data.data.genre) {
+            setIsRelatedLoading(true);
+            const genres = data.data.genre.split(",");
+            const firstGenre = genres[0].trim();
+            const relatedData = await safeFetch(`/api/proxy?action=search&q=${encodeURIComponent(firstGenre)}`);
+            if (relatedData.success && relatedData.items) {
+              // Filter out the current movie from related movies
+              const filteredRelated = relatedData.items.filter((item: MovieItem) => item.detailPath !== detailPath);
+              setRelatedMovies(filteredRelated);
+            }
+            setIsRelatedLoading(false);
+          }
         } else {
           setError("Failed to load movie details.");
         }
@@ -65,6 +82,8 @@ export function Detail() {
     };
 
     fetchDetail();
+    // Scroll to top when detailPath changes
+    window.scrollTo(0, 0);
   }, [detailPath]);
 
   if (isLoading) {
@@ -289,6 +308,17 @@ export function Detail() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Related Content */}
+        {(isRelatedLoading || relatedMovies.length > 0) && (
+          <div className="mt-16 -mx-4 md:mx-0">
+            <SectionRow 
+              title="Konten Terkait" 
+              items={relatedMovies} 
+              isLoading={isRelatedLoading} 
+            />
           </div>
         )}
       </div>

@@ -1,6 +1,10 @@
 import express from "express";
 import db from "./server/db.js";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -26,7 +30,7 @@ async function startServer() {
       while (retries > 0) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout per attempt
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout per attempt
 
           const response = await fetch(url.toString(), {
             headers: {
@@ -55,13 +59,13 @@ async function startServer() {
 
       // If we exhaust all retries
       console.error("Proxy error after retries:", lastError);
-      res.status(502).json({ 
+      res.json({ 
         success: false, 
-        error: "The external movie server is currently busy or unavailable (504 Gateway Timeout). Please try again in a few moments." 
+        error: "The external movie server is currently busy or unavailable. Please try again in a few moments." 
       });
     } catch (error) {
       console.error("Proxy setup error:", error);
-      res.status(500).json({ success: false, error: "Internal server error setting up proxy" });
+      res.json({ success: false, error: "Internal server error setting up proxy" });
     }
   });
 
@@ -71,7 +75,7 @@ async function startServer() {
       const ads = db.prepare("SELECT * FROM ads WHERE isActive = 1").all();
       res.json({ success: true, data: ads });
     } catch (e) {
-      res.status(500).json({ success: false, error: "Failed to fetch ads" });
+      res.json({ success: false, error: "Failed to fetch ads" });
     }
   });
 
@@ -80,7 +84,7 @@ async function startServer() {
       const ads = db.prepare("SELECT * FROM ads ORDER BY createdAt DESC").all();
       res.json({ success: true, data: ads });
     } catch (e) {
-      res.status(500).json({ success: false, error: "Failed to fetch ads" });
+      res.json({ success: false, error: "Failed to fetch ads" });
     }
   });
 
@@ -94,7 +98,7 @@ async function startServer() {
       const result = stmt.run(title, type, imageUrl, targetUrl, position, isActive ? 1 : 0, customCode);
       res.json({ success: true, id: result.lastInsertRowid });
     } catch (e) {
-      res.status(500).json({ success: false, error: "Failed to create ad" });
+      res.json({ success: false, error: "Failed to create ad" });
     }
   });
 
@@ -108,7 +112,7 @@ async function startServer() {
       stmt.run(title, type, imageUrl, targetUrl, position, isActive ? 1 : 0, customCode, req.params.id);
       res.json({ success: true });
     } catch (e) {
-      res.status(500).json({ success: false, error: "Failed to update ad" });
+      res.json({ success: false, error: "Failed to update ad" });
     }
   });
 
@@ -118,7 +122,7 @@ async function startServer() {
       stmt.run(req.params.id);
       res.json({ success: true });
     } catch (e) {
-      res.status(500).json({ success: false, error: "Failed to delete ad" });
+      res.json({ success: false, error: "Failed to delete ad" });
     }
   });
 
@@ -128,7 +132,7 @@ async function startServer() {
       stmt.run(req.params.id);
       res.json({ success: true });
     } catch (e) {
-      res.status(500).json({ success: false, error: "Failed to record click" });
+      res.json({ success: false, error: "Failed to record click" });
     }
   });
 
@@ -138,8 +142,75 @@ async function startServer() {
       stmt.run(req.params.id);
       res.json({ success: true });
     } catch (e) {
-      res.status(500).json({ success: false, error: "Failed to record impression" });
+      res.json({ success: false, error: "Failed to record impression" });
     }
+  });
+
+  // SEO: Dynamic Sitemap
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const baseUrl = "https://masrofi.web.id";
+      const staticPages = [
+        "",
+        "/category/trending",
+        "/category/action",
+        "/category/indonesian-movies",
+        "/category/indonesian-drama",
+        "/category/horror",
+        "/category/kdrama",
+        "/category/anime"
+      ];
+
+      let dynamicUrls: string[] = [];
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        
+        // Fetch trending movies to populate dynamic URLs
+        const response = await fetch("https://zeldvorik.ru/apiv3/api.php?action=trending&page=1", {
+          headers: { "User-Agent": "Mozilla/5.0" },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.items)) {
+            dynamicUrls = data.items.map((item: any) => `/detail/${encodeURIComponent(item.detailPath)}`);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch dynamic sitemap data:", e);
+      }
+
+      const allUrls = [...staticPages, ...dynamicUrls];
+      
+      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${allUrls.map(url => `  <url>
+    <loc>${baseUrl}${url}</loc>
+    <changefreq>${url === "" ? "daily" : "weekly"}</changefreq>
+    <priority>${url === "" ? "1.0" : url.startsWith("/category") ? "0.8" : "0.6"}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+
+      res.header("Content-Type", "application/xml");
+      res.send(sitemap);
+    } catch (error) {
+      console.error("Sitemap generation error:", error);
+      res.status(500).end();
+    }
+  });
+
+  // SEO: Robots.txt
+  app.get("/robots.txt", (req, res) => {
+    res.type("text/plain");
+    res.send(`User-agent: *
+Allow: /
+
+Sitemap: https://masrofi.web.id/sitemap.xml`);
   });
 
   // Vite middleware for development
@@ -151,10 +222,10 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static("dist"));
+    app.use(express.static(path.join(__dirname, "dist")));
     // Fallback for SPA routing
     app.get("*", (req, res) => {
-      res.sendFile(path.resolve(process.cwd(), "dist/index.html"));
+      res.sendFile(path.resolve(__dirname, "dist", "index.html"));
     });
   }
 
